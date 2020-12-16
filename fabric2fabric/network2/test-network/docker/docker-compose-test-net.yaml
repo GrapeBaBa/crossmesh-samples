@@ -1,0 +1,125 @@
+# Copyright IBM Corp. All Rights Reserved.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: '2'
+
+volumes:
+  orderer2.example.com:
+  peer0.org13.example.com:
+  peer0.org23.example.com:
+
+networks:
+  test2:
+
+services:
+
+  orderer2.example.com:
+    container_name: orderer2.example.com
+    image: hyperledger/fabric-orderer:$IMAGE_TAG
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7250
+      - ORDERER_GENERAL_GENESISMETHOD=file
+      - ORDERER_GENERAL_GENESISFILE=/var/hyperledger/orderer2/orderer2.genesis.block
+      - ORDERER_GENERAL_LOCALMSPID=Orderer2MSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer2/msp
+      # enabled TLS
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer2/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer2/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer2/tls/ca.crt]
+      - ORDERER_KAFKA_TOPIC_REPLICATIONFACTOR=1
+      - ORDERER_KAFKA_VERBOSE=true
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer2/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer2/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer2/tls/ca.crt]
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric
+    command: orderer
+    volumes:
+        - ../system-genesis-block/genesis.block:/var/hyperledger/orderer2/orderer2.genesis.block
+        - ../organizations/ordererOrganizations/example.com/orderers/orderer2.example.com/msp:/var/hyperledger/orderer2/msp
+        - ../organizations/ordererOrganizations/example.com/orderers/orderer2.example.com/tls/:/var/hyperledger/orderer2/tls
+        - orderer2.example.com:/var/hyperledger/production/orderer
+    ports:
+      - 7250:7250
+    networks:
+      - test2
+
+  peer0.org13.example.com:
+    container_name: peer0.org13.example.com
+    image: hyperledger/fabric-peer:$IMAGE_TAG
+    environment:
+      #Generic peer variables
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      # the following setting starts chaincode containers on the same
+      # bridge network as the peers
+      # https://docs.docker.com/compose/networking/
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${COMPOSE_PROJECT_NAME}_test2
+      - FABRIC_LOGGING_SPEC=INFO
+      #- FABRIC_LOGGING_SPEC=DEBUG
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      # Peer specific variabes
+      - CORE_PEER_ID=peer0.org13.example.com
+      - CORE_PEER_ADDRESS=peer0.org13.example.com:7251
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7251
+      - CORE_PEER_CHAINCODEADDRESS=peer0.org13.example.com:7252
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7252
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org13.example.com:7251
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org13.example.com:7251
+      - CORE_PEER_LOCALMSPID=Org13MSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../organizations/peerOrganizations/org13.example.com/peers/peer0.org13.example.com/msp:/etc/hyperledger/fabric/msp
+        - ../organizations/peerOrganizations/org13.example.com/peers/peer0.org13.example.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.org13.example.com:/var/hyperledger/production
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    ports:
+      - 7251:7251
+    networks:
+      - test2
+
+  peer0.org23.example.com:
+    container_name: peer0.org23.example.com
+    image: hyperledger/fabric-peer:$IMAGE_TAG
+    environment:
+      #Generic peer variables
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      # the following setting starts chaincode containers on the same
+      # bridge network as the peers
+      # https://docs.docker.com/compose/networking/
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=${COMPOSE_PROJECT_NAME}_test2
+      - FABRIC_LOGGING_SPEC=INFO
+      #- FABRIC_LOGGING_SPEC=DEBUG
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_PROFILE_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      # Peer specific variabes
+      - CORE_PEER_ID=peer0.org23.example.com
+      - CORE_PEER_ADDRESS=peer0.org23.example.com:9251
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:9251
+      - CORE_PEER_CHAINCODEADDRESS=peer0.org23.example.com:9252
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9252
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org23.example.com:9251
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org23.example.com:9251
+      - CORE_PEER_LOCALMSPID=Org23MSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../organizations/peerOrganizations/org23.example.com/peers/peer0.org23.example.com/msp:/etc/hyperledger/fabric/msp
+        - ../organizations/peerOrganizations/org23.example.com/peers/peer0.org23.example.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.org23.example.com:/var/hyperledger/production
+    working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
+    command: peer node start
+    ports:
+      - 9251:9251
+    networks:
+      - test2
